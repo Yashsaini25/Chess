@@ -47,8 +47,8 @@ bool isValidPawnMove(char piece, pair<int,int> from, pair<int, int>to){
 
 bool isValidKnightMove(char piece, pair<int, int>from , pair<int, int>to){
     int fx = from.first;
-    int tx = from.second;
-    int fy = to.first;
+    int fy = from.second;
+    int tx = to.first;
     int ty = to.second;
 
     if((abs(fx-tx) == 2 && abs(fy-ty) ==1) || (abs(fx-tx) == 1 && abs(fy-ty) == 2)){
