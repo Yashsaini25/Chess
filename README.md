@@ -4,6 +4,7 @@
   ```bash
   git clone https://github.com/Yashsaini25/Chess.git
   cd chess
+  ```
 
 2.Compile the code:
   ```bash
