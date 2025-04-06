@@ -148,17 +148,260 @@ pair<int, int> parsePosition(string pos){
     return {row, col};
 }
 
+string convertPosition(pair<int,int> pos){
+    string s;
+    s += (char)(pos.second + 'a');
+    s += (char)(pos.first + '1');
+    return s;
+}
+
+bool isInCheck(bool isWhiteTurn){
+    pair<int,int> kingPos = {-1,-1};
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            if(board[i][j] == (isWhiteTurn ? 'K' : 'k')){
+                kingPos = {i,j};
+                break;
+            }
+        }
+    }
+
+    if(kingPos.first == -1) return 0;
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            char attacker = board[i][j];
+            if(attacker == ' ') continue;
+            if(islower(attacker) != isWhiteTurn) continue;
+            if(isValidMove(attacker, {i,j}, kingPos)) return 1; 
+        }
+    }
+    return 0;
+}
+
+bool isCheckmate(bool isWhiteTurn){
+    if(!isInCheck(isWhiteTurn)) return 0;
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            char piece = board[i][j];
+
+            if(piece == ' ' || islower(piece) == isWhiteTurn) continue;
+            pair<int, int> from = {i,j};
+
+            for(int x=0; x<8; x++){
+                for(int y=0; y<8; y++){
+                    pair<int, int> to = {x,y};
+                    char captured = board[to.first][to.second];
+
+                    if(makeMove(from, to, isWhiteTurn)){
+                        if(!isInCheck(isWhiteTurn)){
+                            board[from.first][from.second] = piece;
+                            board[to.first][to.second] = captured;
+                            return 0;
+                        }
+                        board[from.first][from.second] = piece;
+                        board[to.first][to.second] = captured;
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+bool isStalemate(bool isWhiteTurn){
+    if(isInCheck(isWhiteTurn)) return 0;
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            char piece = board[i][j];
+
+            if(piece == ' ' || islower(piece) == isWhiteTurn) continue;
+            pair<int, int> from = {i,j};
+
+            for(int x=0; x<8; x++){
+                for(int y=0; y<8; y++){
+                    pair<int, int> to = {x,y};
+                    char captured = board[to.first][to.second];
+
+                    if(makeMove(from, to, isWhiteTurn)){
+                        if(!isInCheck(isWhiteTurn)){
+                            board[from.first][from.second] = piece;
+                            board[to.first][to.second] = captured;
+                            return 0;
+                        }
+                        board[from.first][from.second] = piece;
+                        board[to.first][to.second] = captured;
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+int evaluateBoard(){
+    int score = 0;
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            char piece = board[i][j];
+            switch(piece){
+                case 'P': score += 1; break;
+                case 'N': score += 3; break;
+                case 'B': score += 3; break;
+                case 'R': score += 5; break;
+                case 'Q': score += 9; break;
+                case 'K': score += 100; break;
+
+                case 'p': score -= 1; break;
+                case 'n': score -= 3; break;
+                case 'b': score -= 3; break;
+                case 'r': score -= 5; break;
+                case 'q': score -= 9; break;
+                case 'k': score -= 100; break;
+            }
+        }
+    }
+    return score;
+}
+
+int minimax(int depth, bool isMaximizing, int alpha, int beta){
+    if(depth == 0 || isCheckmate(true) || isCheckmate(false) || isStalemate(true) || isStalemate(false)){
+        return evaluateBoard();
+    }
+
+    if(isMaximizing){
+        int maxVal = INT_MIN;
+        for(int i=0; i<8; i++){
+            for(int j=0; j<8; j++){
+                char piece = board[i][j];
+                if(islower(piece)){
+                    pair<int, int> from = {i,j};
+
+                    for(int x=0; x<8; x++){
+                        for(int y=0; y<8; y++){
+                            pair<int, int> to = {x,y};
+                            char captured = board[to.first][to.second];
+
+                            if(makeMove(from, to, 0)){
+                                if(isInCheck(false)){
+                                    board[from.first][from.second] = piece;
+                                    board[to.first][to.second] = captured;
+                                    continue;
+                                }
+
+                                int moveValue = minimax(depth-1, false, alpha, beta);
+                                board[from.first][from.second] = piece;
+                                board[to.first][to.second] = captured;
+                                maxVal = max(maxVal, moveValue);
+                                alpha = max(alpha, moveValue);
+                                if(beta <= alpha) return maxVal; 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return maxVal;
+    }
+
+    else{
+        int minVal = INT_MAX;
+        for(int i=0; i<8; i++){
+            for(int j=0; j<8; j++){
+                char piece = board[i][j];
+                if(isupper(piece)){
+                    pair<int, int> from = {i,j};
+
+                    for(int x=0; x<8; x++){
+                        for(int y=0; y<8; y++){
+                            pair<int, int> to = {x,y};
+                            char captured = board[to.first][to.second];
+
+                            if(makeMove(from, to, 1)){
+                                if(isInCheck(true)){
+                                    board[from.first][from.second] = piece;
+                                    board[to.first][to.second] = captured;
+                                    continue;
+                                }
+
+                                int moveValue = minimax(depth-1, true, alpha, beta);
+                                board[from.first][from.second] = piece;
+                                board[to.first][to.second] = captured;
+                                minVal = min(minVal, moveValue);
+                                beta = min(beta, moveValue);
+                                if(beta <= alpha) return minVal;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return minVal;
+    }
+}
+
+pair<pair<int, int>, pair<int, int>> findBestMove(){
+    int bestValue = INT_MIN;
+    pair<pair<int, int>, pair<int, int>> bestMove;
+
+    for(int i=0; i<8; i++){
+        for(int j=0; j<8; j++){
+            char piece = board[i][j];
+            if(islower(piece)){
+                pair<int, int> from = {i,j};
+
+                for(int x=0; x<8; x++){
+                    for(int y=0; y<8; y++){
+                        pair<int, int> to = {x,y};
+                        char captured = board[to.first][to.second];
+
+                        if(makeMove(from, to, 0)){
+                            int moveValue = minimax(4, 0, INT_MIN, INT_MAX);
+                            board[from.first][from.second] = piece;
+                            board[to.first][to.second] = captured;
+                            if(moveValue > bestValue){
+                                bestValue = moveValue;
+                                bestMove = {from, to};
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return bestMove;
+}
+
+bool handleStates(bool isWhiteTurn){
+    if(isCheckmate(isWhiteTurn)){
+        cout << (isWhiteTurn ? "AI wins!" : "You won!") << endl;
+        return 1;
+    }
+    if(isStalemate(isWhiteTurn)){
+        cout << "Stalemate! It's a draw." << endl;
+        return 1;
+    }
+    if(isInCheck(isWhiteTurn)){
+        cout << (isWhiteTurn ? "You is in check!" : "Ai is in check!") << endl;
+    }
+    return 0;
+}
+
 void startGame(){
     string s1,s2;
     bool isWhiteTurn = 1;
+    pair<int,int> from, to;
 
     while(1){
-        cout << (isWhiteTurn ? "\nWhite's Move" : "\nBlack's Move") << endl;
         cout << "\nEnter your move (e.g., e2 e4): ";
         cin >> s1 >> s2;
 
-        pair<int,int> from = parsePosition(s1);
-        pair<int,int> to = parsePosition(s2);
+        from = parsePosition(s1);
+        to = parsePosition(s2);
 
         if(s1.length() != 2 || s2.length() != 2){
             cout << "Invalid input. Try again.\n";
@@ -174,9 +417,31 @@ void startGame(){
             cout << "No piece at the source position. Try again.\n";
             continue;
         }
-        if(makeMove(from, to, isWhiteTurn)) isWhiteTurn = !isWhiteTurn;
-        else cout << "Invalid move. Try again.\n";
+        if(makeMove(from, to, isWhiteTurn)){
+            isWhiteTurn = !isWhiteTurn;
+            cout << "\nMove made from " << convertPosition(from) << " to " << convertPosition(to) << endl<<endl;
+            bool gameOver = handleStates(isWhiteTurn);
+            display();
+            if(gameOver) return;
+        } 
+        else{
+            cout << "Invalid move. Try again.\n";
+            continue;
+        }
+
+        cout << "\nAI's turn...\n";
+        pair<pair<int, int>, pair<int, int>> bestMove = findBestMove();
+        from = bestMove.first;
+        to = bestMove.second;
+        char piece = board[from.first][from.second];
+        char captured = board[to.first][to.second];
+        makeMove(from, to, 0);
+        cout << "\nAI moved " << " from " << convertPosition(from) << " to " << convertPosition(to) << endl<<endl;
+        bool gameOver = handleStates(isWhiteTurn);
+        isWhiteTurn = !isWhiteTurn;
         display();
+        if(gameOver) return;
+        cout << "\nYour turn...\n";
     }
 }
 
