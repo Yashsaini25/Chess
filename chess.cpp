@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector> // Include vector header
 using namespace std;
 
 vector<vector<char>> board = {
@@ -181,13 +180,14 @@ bool isInCheck(bool isWhiteTurn){
 }
 
 bool isCheckmate(bool isWhiteTurn){
-    if(!isInCheck(isWhiteTurn)) return 0;
+    if(!isInCheck(isWhiteTurn)) return false;
 
     for(int i=0; i<8; i++){
         for(int j=0; j<8; j++){
             char piece = board[i][j];
-
-            if(piece == ' ' || islower(piece) == isWhiteTurn) continue;
+            
+            if(piece == ' ' || islower(piece) != isWhiteTurn) continue;
+            
             pair<int, int> from = {i,j};
 
             for(int x=0; x<8; x++){
@@ -199,7 +199,7 @@ bool isCheckmate(bool isWhiteTurn){
                         if(!isInCheck(isWhiteTurn)){
                             board[from.first][from.second] = piece;
                             board[to.first][to.second] = captured;
-                            return 0;
+                            return false;
                         }
                         board[from.first][from.second] = piece;
                         board[to.first][to.second] = captured;
@@ -208,17 +208,18 @@ bool isCheckmate(bool isWhiteTurn){
             }
         }
     }
-    return 1;
+    return true;
 }
 
 bool isStalemate(bool isWhiteTurn){
-    if(isInCheck(isWhiteTurn)) return 0;
+    if(isInCheck(isWhiteTurn)) return false;
 
     for(int i=0; i<8; i++){
         for(int j=0; j<8; j++){
             char piece = board[i][j];
-
-            if(piece == ' ' || islower(piece) == isWhiteTurn) continue;
+            
+            if(piece == ' ' || islower(piece) != isWhiteTurn) continue;
+            
             pair<int, int> from = {i,j};
 
             for(int x=0; x<8; x++){
@@ -230,7 +231,7 @@ bool isStalemate(bool isWhiteTurn){
                         if(!isInCheck(isWhiteTurn)){
                             board[from.first][from.second] = piece;
                             board[to.first][to.second] = captured;
-                            return 0;
+                            return false;
                         }
                         board[from.first][from.second] = piece;
                         board[to.first][to.second] = captured;
@@ -239,34 +240,48 @@ bool isStalemate(bool isWhiteTurn){
             }
         }
     }
-    return 1;
+    return true;
 }
 
 int evaluateBoard(){
     int score = 0;
 
+    int pawnTable[8][8] = {
+        {0,0,0,0,0,0,0,0},
+        {5,5,5,5,5,5,5,5},
+        {1,1,2,3,3,2,1,1},
+        {0,0,0,2,2,0,0,0},
+        {0,0,0,-2,-2,0,0,0},
+        {1,-1,-2,0,0,-2,-1,1},
+        {1,2,2,-2,-2,2,2,1},
+        {0,0,0,0,0,0,0,0}
+    };
+
     for(int i=0; i<8; i++){
         for(int j=0; j<8; j++){
             char piece = board[i][j];
-            switch(piece){
-                case 'P': score += 1; break;
-                case 'N': score += 3; break;
-                case 'B': score += 3; break;
-                case 'R': score += 5; break;
-                case 'Q': score += 9; break;
-                case 'K': score += 100; break;
+            int base = 0, bonus = 0;
 
-                case 'p': score -= 1; break;
-                case 'n': score -= 3; break;
-                case 'b': score -= 3; break;
-                case 'r': score -= 5; break;
-                case 'q': score -= 9; break;
-                case 'k': score -= 100; break;
+            switch(piece){
+                case 'P': base = 1; bonus = pawnTable[i][j]; break;
+                case 'N': base = 3; break;
+                case 'B': base = 3; break;
+                case 'R': base = 5; break;
+                case 'Q': base = 9; break;
+                case 'K': base = 100; break;
+                case 'p': base = -1; bonus = -pawnTable[7-i][j]; break;
+                case 'n': base = -3; break;
+                case 'b': base = -3; break;
+                case 'r': base = -5; break;
+                case 'q': base = -9; break;
+                case 'k': base = -100; break;
             }
+            score += base + bonus;
         }
     }
     return score;
 }
+
 
 int minimax(int depth, bool isMaximizing, int alpha, int beta){
     if(depth == 0 || isCheckmate(true) || isCheckmate(false) || isStalemate(true) || isStalemate(false)){
@@ -360,7 +375,12 @@ pair<pair<int, int>, pair<int, int>> findBestMove(){
                         char captured = board[to.first][to.second];
 
                         if(makeMove(from, to, 0)){
-                            int moveValue = minimax(4, 0, INT_MIN, INT_MAX);
+                            if(isInCheck(false)){
+                                board[from.first][from.second] = piece;
+                                board[to.first][to.second] = captured;
+                                continue;
+                            }
+                            int moveValue = minimax(6, 0, INT_MIN, INT_MAX);
                             board[from.first][from.second] = piece;
                             board[to.first][to.second] = captured;
                             if(moveValue > bestValue){
