@@ -150,7 +150,7 @@ pair<int, int> parsePosition(string pos){
 string convertPosition(pair<int,int> pos){
     string s;
     s += (char)(pos.second + 'a');
-    s += (char)(pos.first + '1');
+    s += (char)('8' - pos.first);
     return s;
 }
 
@@ -396,76 +396,6 @@ pair<pair<int, int>, pair<int, int>> findBestMove(){
     return bestMove;
 }
 
-bool handleStates(bool isWhiteTurn){
-    if(isCheckmate(isWhiteTurn)){
-        cout << (isWhiteTurn ? "AI wins!" : "You won!") << endl;
-        return 1;
-    }
-    if(isStalemate(isWhiteTurn)){
-        cout << "Stalemate! It's a draw." << endl;
-        return 1;
-    }
-    if(isInCheck(isWhiteTurn)){
-        cout << (isWhiteTurn ? "You is in check!" : "Ai is in check!") << endl;
-    }
-    return 0;
-}
-
-void startGame(){
-    string s1,s2;
-    bool isWhiteTurn = 1;
-    pair<int,int> from, to;
-
-    while(1){
-        cout << "\nEnter your move (e.g., e2 e4): ";
-        cin >> s1 >> s2;
-
-        from = parsePosition(s1);
-        to = parsePosition(s2);
-
-        if(s1.length() != 2 || s2.length() != 2){
-            cout << "Invalid input. Try again.\n";
-            continue;
-        }
-
-        if(from.first < 0 || from.first > 7 || from.second < 0 || from.second > 7 ||
-           to.first < 0 || to.first > 7 || to.second < 0 || to.second > 7){
-            cout << "Invalid move. Try again.\n";
-            continue;
-        }
-        if(board[from.first][from.second] == ' '){
-            cout << "No piece at the source position. Try again.\n";
-            continue;
-        }
-        if(makeMove(from, to, isWhiteTurn)){
-            isWhiteTurn = !isWhiteTurn;
-            cout << "\nMove made from " << convertPosition(from) << " to " << convertPosition(to) << endl<<endl;
-            bool gameOver = handleStates(isWhiteTurn);
-            display();
-            if(gameOver) return;
-        } 
-        else{
-            cout << "Invalid move. Try again.\n";
-            continue;
-        }
-
-        cout << "\nAI's turn...\n";
-        pair<pair<int, int>, pair<int, int>> bestMove = findBestMove();
-        from = bestMove.first;
-        to = bestMove.second;
-        char piece = board[from.first][from.second];
-        char captured = board[to.first][to.second];
-        makeMove(from, to, 0);
-        cout << "\nAI moved " << " from " << convertPosition(from) << " to " << convertPosition(to) << endl<<endl;
-        bool gameOver = handleStates(isWhiteTurn);
-        isWhiteTurn = !isWhiteTurn;
-        display();
-        if(gameOver) return;
-        cout << "\nYour turn...\n";
-    }
-}
-
-
 string getFEN(bool whiteToMove) {
     string fen = "";
 
@@ -507,7 +437,6 @@ void loadBoardFromFEN(const string& fen) {
 
     for (char c : fen) {
         if (c == ' ') break; 
-
         if (c == '/') {
             row++;     
             col = 0;   
@@ -534,32 +463,38 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string s1 = move.substr(0, 2);
-    std::string s2 = move.substr(3, 2);
-
-    std::pair<int, int> from = parsePosition(s1);
-    std::pair<int, int> to = parsePosition(s2);
-
     loadBoardFromFEN(fen); 
 
-    bool isValid = makeMove(from, to, 1); 
-    if (!isValid) {
-        std::cout << "{ \"valid\": false }";
-        return 0;
+    if(move != "no-ne"){
+        std::string s1 = move.substr(0, 2);
+        std::string s2 = move.substr(3, 2);
+
+        std::pair<int, int> from = parsePosition(s1);
+        std::pair<int, int> to = parsePosition(s2);
+
+        bool isValid = makeMove(from, to, 1); 
+        if (!isValid) {
+            std::cout << "{ \"valid\": false }";
+            return 0;
+        }
     }
 
     auto bestMove = findBestMove();
     makeMove(bestMove.first, bestMove.second, 0); 
 
+    string aiMove = convertPosition(bestMove.first) + "-" + convertPosition(bestMove.second);
+    bool Checkmate = isCheckmate(1);
+    bool Stalemate = isStalemate(0);
+
     fen = getFEN(1); 
 
     std::cout << "{";
     std::cout << "\"valid\": true, ";
-    std::cout << "\"fen\": \"" << fen << "\"";
+    std::cout << "\"fen\": \"" << fen << "\", ";
+    std::cout << "\"aiMove\": \"" << aiMove << "\", ";  
+    std::cout << "\"isCheckmate\": " << (Checkmate ? "true" : "false") << ", ";
+    std::cout << "\"isStalemate\": " << (Stalemate ? "true" : "false");
     std::cout << "}";
 
     return 0;
 }
-
-
-
